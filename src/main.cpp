@@ -197,7 +197,11 @@ int main() {
   	map_waypoints_dy.push_back(d_y);
   }
 
-  h.onMessage([&map_waypoints_x,&map_waypoints_y,&map_waypoints_s,&map_waypoints_dx,&map_waypoints_dy](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
+	//default lane and ref velocity
+  int lane = 1;
+  double max_velocity = 49.5;
+  double ref_velocity = 0.0;
+  h.onMessage([&lane, &max_velocity, &ref_velocity, &map_waypoints_x,&map_waypoints_y,&map_waypoints_s,&map_waypoints_dx,&map_waypoints_dy](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
                      uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
     // The 4 signifies a websocket message
@@ -214,7 +218,7 @@ int main() {
         
         if (event == "telemetry") {
           // j[1] is the data JSON object
-          
+
         	// Main car's localization Data
           	double car_x = j[1]["x"];
           	double car_y = j[1]["y"];
@@ -233,12 +237,40 @@ int main() {
           	// Sensor Fusion Data, a list of all other cars on the same side of the road.
           	auto sensor_fusion = j[1]["sensor_fusion"];
 
+		    bool too_close = false;
+
           	int prev_size = previous_path_x.size();
 
-          	json msgJson;
+          	if(prev_size > 0)
+          	{
+          		car_s = end_path_s;
+          	}
 
-          	int lane = 1;
-		    double ref_velocity = 49.5;
+          	for (int i = 0; i < sensor_fusion.size(); ++i) {
+				float check_car_d = sensor_fusion[i][6];
+          		//car is in my lane
+          		if(check_car_d < 2+4*lane+2 && check_car_d > 2+4*lane-2)
+          		{
+          			double check_car_vx = sensor_fusion[i][3];
+          			double check_car_vy = sensor_fusion[i][4];
+          			double check_car_speed = sqrt(check_car_vx*check_car_vx+check_car_vy*check_car_vy);
+          			double check_car_s = sensor_fusion[i][5];
+
+          			//projection to where our leftover points end (assuming car maintains near 0 lat velocity)
+          			check_car_s +=((double)prev_size*0.02*check_car_speed);
+          			if((check_car_s > car_s) && (check_car_s-car_s) < 70)
+          			{
+          				//TODO consider car for follow distance
+          				too_close = true;
+          			}
+          		}
+			}
+
+          	if(too_close)
+          		ref_velocity -= 0.224;
+          	else if(ref_velocity < max_velocity)
+          		ref_velocity += 0.224;
+
 
 		    vector<double> ptsx;
           	vector<double> ptsy;
@@ -332,12 +364,14 @@ int main() {
 				next_y_vals.push_back(y_point);
 			}
 
-			for(int i=0; i < 50 ; i++){
-				cout<< "(" << next_x_vals[i] << "," << next_y_vals[i] <<") ";
-			}
-			cout << endl;
-          	// TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
-          	msgJson["next_x"] = next_x_vals;
+//			for(int i=0; i < 50 ; i++){
+//				cout<< "(" << next_x_vals[i] << "," << next_y_vals[i] <<") ";
+//			}
+//			cout << endl;
+
+
+          	json msgJson;
+			msgJson["next_x"] = next_x_vals;
           	msgJson["next_y"] = next_y_vals;
 
           	auto msg = "42[\"control\","+ msgJson.dump()+"]";
