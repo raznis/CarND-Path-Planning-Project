@@ -32,7 +32,7 @@ public:
 
 	State::State(Map &map){fsmState = KEEP_LANE; this->map = map}
 
-	void update(vector<double> EgoData)
+	void update(vector<double> egoPosAndSpeed, vector<vector<double>> sensor_fusion, vector<double> prev_x_vals, vector<double> prev_y_vals);
 	int get_lane(double d);
 
 

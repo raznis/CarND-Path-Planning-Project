@@ -78,7 +78,7 @@ int main() {
           	double car_yaw = j[1]["yaw"];
           	double car_speed = j[1]["speed"];
 
-          	vector<double> EgoData = { car_x, car_y, car_s, car_d, car_yaw, car_speed };
+          	vector<double> egoPosAndSpeed = { car_x, car_y, car_s, car_d, car_yaw, car_speed };
 
           	// Previous path data given to the Planner
           	auto previous_path_x = j[1]["previous_path_x"];

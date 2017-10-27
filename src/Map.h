@@ -42,6 +42,13 @@ public:
 	// The max s value before wrapping around the track back to 0
 	const double max_s = 6945.554;
 
+	int ClosestWaypoint(double x, double y);
+	int NextWaypoint(double x, double y, double theta);
+	// Transform from Cartesian x,y coordinates to Frenet s,d coordinates
+	vector<double> getFrenet(double x, double y, double theta);
+
+	// Transform from Frenet s,d coordinates to Cartesian x,y
+	vector<double> getXY(double s, double d);
 };
 
 
