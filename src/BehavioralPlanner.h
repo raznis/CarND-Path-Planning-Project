@@ -13,9 +13,21 @@
 #include "Map.h"
 
 using namespace std;
+
+
+
+/*
+ * This class creates the state and performs high level planning
+ */
 class BehavioralPlanner{
+
+
 public:
-	BehavioralPlanner(Map &_map) {map = _map;};
+	State state;
+	Map map;
+
+	BehavioralPlanner(Map &_map) {map = _map; state = State(map);};
+
 	virtual ~BehavioralPlanner();
 
 	double distance(double x1, double y1, double x2, double y2);
@@ -30,9 +42,7 @@ public:
 	// Transform from Frenet s,d coordinates to Cartesian x,y
 	vector<double> getXY(double s, double d, const vector<double> &maps_s, const vector<double> &maps_x, const vector<double> &maps_y);
 };
-/*
- * This class creates the state and performs high level planning
- */
+
 
 
 

@@ -11,14 +11,11 @@
 #include "spline.h"
 
 using namespace std;
-
+using namespace utils;
 // for convenience
 using json = nlohmann::json;
 
-// For converting back and forth between radians and degrees.
-constexpr double pi() { return M_PI; }
-double deg2rad(double x) { return x * pi() / 180; }
-double rad2deg(double x) { return x * 180 / pi(); }
+
 
 // Checks if the SocketIO event has JSON data.
 // If there is data the JSON object in string format will be returned,
@@ -40,41 +37,18 @@ string hasData(string s) {
 int main() {
   uWS::Hub h;
 
-  // Load up map values for waypoint's x,y,s and d normalized normal vectors
-  vector<double> map_waypoints_x;
-  vector<double> map_waypoints_y;
-  vector<double> map_waypoints_s;
-  vector<double> map_waypoints_dx;
-  vector<double> map_waypoints_dy;
+  // Create the "Road" and the "Path Planner" instances
+  string waypoints_file = "../data/highway_map.csv";  // Waypoint map to read from
+  double speed_limit = mph2ms(50); // in m/s
+  int num_lanes = 3;
+  double lane_width = 4; // meters
+  Map highway_map = Map(speed_limit, num_lanes, lane_width, waypoints_file);
 
-  // Waypoint map to read from
-  string map_file_ = "../data/highway_map.csv";
-  // The max s value before wrapping around the track back to 0
-  double max_s = 6945.554;
+  //cout << "Road created!!" << endl;
 
-  ifstream in_map_(map_file_.c_str(), ifstream::in);
+  BehavioralPlanner BP = BehavioralPlanner(highway_map);
 
-  string line;
-  while (getline(in_map_, line)) {
-  	istringstream iss(line);
-  	double x;
-  	double y;
-  	float s;
-  	float d_x;
-  	float d_y;
-  	iss >> x;
-  	iss >> y;
-  	iss >> s;
-  	iss >> d_x;
-  	iss >> d_y;
-  	map_waypoints_x.push_back(x);
-  	map_waypoints_y.push_back(y);
-  	map_waypoints_s.push_back(s);
-  	map_waypoints_dx.push_back(d_x);
-  	map_waypoints_dy.push_back(d_y);
-  }
-
-	//default lane and ref velocity
+  //default lane and ref velocity
   int lane = 1;
   double max_velocity = 49.5;
   double ref_velocity = 0.0;
@@ -103,6 +77,8 @@ int main() {
           	double car_d = j[1]["d"];
           	double car_yaw = j[1]["yaw"];
           	double car_speed = j[1]["speed"];
+
+          	vector<double> EgoData = { car_x, car_y, car_s, car_d, car_yaw, car_speed };
 
           	// Previous path data given to the Planner
           	auto previous_path_x = j[1]["previous_path_x"];

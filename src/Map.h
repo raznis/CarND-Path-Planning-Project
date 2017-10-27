@@ -18,7 +18,7 @@ using namespace std;
 
 class Map {
 public:
-
+	//Speed limit in m/s, lane width in meters.
 	Map(double speed_limit, int num_lanes, double lane_width, string waypoints_file);
 
 	/**
