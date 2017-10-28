@@ -1,14 +1,16 @@
 /*
- * Map.cpp
+ * RoadMap.cpp
  *
  *  Created on: Oct 27, 2017
  *      Author: raz
  */
 
-#include "Map.h"
-using namespace utils;
+#include "RoadMap.h"
+#include "utils.h"
+#include <math.h>
 
-Map::Map(double speed_limit, int num_lanes, double lane_width, string waypoints_file) {
+
+RoadMap::RoadMap(double speed_limit, int num_lanes, double lane_width, string waypoints_file) {
 
 	this->num_lanes = num_lanes;
 	this->speed_limit = speed_limit;
@@ -38,7 +40,7 @@ Map::Map(double speed_limit, int num_lanes, double lane_width, string waypoints_
 	}
 }
 
-int Map::ClosestWaypoint(double x, double y)
+int RoadMap::ClosestWaypoint(double x, double y)
 {
 
 	double closestLen = 100000; //large number
@@ -48,7 +50,7 @@ int Map::ClosestWaypoint(double x, double y)
 	{
 		double map_x = this->map_waypoints_x[i];
 		double map_y = this->map_waypoints_y[i];
-		double dist = distance(x,y,map_x,map_y);
+		double dist = utils::distance(x,y,map_x,map_y);
 		if(dist < closestLen)
 		{
 			closestLen = dist;
@@ -60,7 +62,7 @@ int Map::ClosestWaypoint(double x, double y)
 	return closestWaypoint;
 }
 
-int Map::NextWaypoint(double x, double y, double theta)
+int RoadMap::NextWaypoint(double x, double y, double theta)
 {
 
 	int closestWaypoint = ClosestWaypoint(x,y);
@@ -70,9 +72,9 @@ int Map::NextWaypoint(double x, double y, double theta)
 
 	double heading = atan2( (map_y-y),(map_x-x) );
 
-	double angle = abs(theta-heading);
+	double angle = fabs(theta-heading);
 
-	if(angle > pi()/4)
+	if(angle > utils::pi()/4)
 	{
 		closestWaypoint++;
 	}
@@ -82,7 +84,7 @@ int Map::NextWaypoint(double x, double y, double theta)
 }
 
 // Transform from Cartesian x,y coordinates to Frenet s,d coordinates
-vector<double> Map::getFrenet(double x, double y, double theta)
+vector<double> RoadMap::getFrenet(double x, double y, double theta)
 {
 	int next_wp = NextWaypoint(x,y, theta);
 
@@ -103,14 +105,14 @@ vector<double> Map::getFrenet(double x, double y, double theta)
 	double proj_x = proj_norm*n_x;
 	double proj_y = proj_norm*n_y;
 
-	double frenet_d = distance(x_x,x_y,proj_x,proj_y);
+	double frenet_d = utils::distance(x_x,x_y,proj_x,proj_y);
 
 	//see if d value is positive or negative by comparing it to a center point
 
 	double center_x = 1000-this->map_waypoints_x[prev_wp];
 	double center_y = 2000-this->map_waypoints_y[prev_wp];
-	double centerToPos = distance(center_x,center_y,x_x,x_y);
-	double centerToRef = distance(center_x,center_y,proj_x,proj_y);
+	double centerToPos = utils::distance(center_x,center_y,x_x,x_y);
+	double centerToRef = utils::distance(center_x,center_y,proj_x,proj_y);
 
 	if(centerToPos <= centerToRef)
 	{
@@ -121,17 +123,17 @@ vector<double> Map::getFrenet(double x, double y, double theta)
 	double frenet_s = 0;
 	for(int i = 0; i < prev_wp; i++)
 	{
-		frenet_s += distance(this->map_waypoints_x[i],this->map_waypoints_y[i],this->map_waypoints_x[i+1],this->map_waypoints_y[i+1]);
+		frenet_s += utils::distance(this->map_waypoints_x[i],this->map_waypoints_y[i],this->map_waypoints_x[i+1],this->map_waypoints_y[i+1]);
 	}
 
-	frenet_s += distance(0,0,proj_x,proj_y);
+	frenet_s += utils::distance(0,0,proj_x,proj_y);
 
 	return {frenet_s,frenet_d};
 
 }
 
 // Transform from Frenet s,d coordinates to Cartesian x,y
-vector<double> Map::getXY(double s, double d)
+vector<double> RoadMap::getXY(double s, double d)
 {
 	int prev_wp = -1;
 
@@ -149,7 +151,7 @@ vector<double> Map::getXY(double s, double d)
 	double seg_x = this->map_waypoints_x[prev_wp]+seg_s*cos(heading);
 	double seg_y = this->map_waypoints_y[prev_wp]+seg_s*sin(heading);
 
-	double perp_heading = heading-pi()/2;
+	double perp_heading = heading-utils::pi()/2;
 
 	double x = seg_x + d*cos(perp_heading);
 	double y = seg_y + d*sin(perp_heading);
@@ -158,7 +160,19 @@ vector<double> Map::getXY(double s, double d)
 
 }
 
+int RoadMap::get_lane(double d)
+{
+	int lane = int(d / this->lane_width );
 
-Map::~Map() {}
+	if (lane < 0)
+		lane = 0;
+	else if (lane > this->num_lanes - 1)
+		lane = this->num_lanes-1;
+
+	return lane;
+}
+
+
+RoadMap::~RoadMap() {}
 
 

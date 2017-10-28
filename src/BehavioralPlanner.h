@@ -10,11 +10,18 @@
 
 #include <iostream>
 #include <vector>
-#include "Map.h"
+#include "RoadMap.h"
+#include "State.h"
+//#include "utils.h"
 
 using namespace std;
 
-
+enum HighwayFSM
+{
+	KEEP_LANE,
+	LANE_CHANGE_LEFT,
+	LANE_CHANGE_RIGHT
+};
 
 /*
  * This class creates the state and performs high level planning
@@ -24,10 +31,12 @@ class BehavioralPlanner{
 
 public:
 	State state;
-	Map map;
-
-	BehavioralPlanner(Map &_map) {map = _map; state = State(map);};
-
+	RoadMap map;
+	HighwayFSM fsmState;	//the current state in the highway finite state machine
+	double ref_velocity;
+	BehavioralPlanner(RoadMap road_map);
+	void updateState(const State state){this->state = state;}
+	void generatePlan(vector<double> &next_x_vals, vector<double> &next_y_vals, double end_path_s);
 	virtual ~BehavioralPlanner();
 
 };

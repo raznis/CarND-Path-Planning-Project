@@ -5,8 +5,8 @@
  *      Author: raz
  */
 
-#ifndef MAP_H_
-#define MAP_H_
+#ifndef ROADMAP_H_
+#define ROADMAP_H_
 
 #include <sstream>
 #include <fstream>
@@ -16,15 +16,15 @@
 
 using namespace std;
 
-class Map {
+class RoadMap {
 public:
 	//Speed limit in m/s, lane width in meters.
-	Map(double speed_limit, int num_lanes, double lane_width, string waypoints_file);
+	RoadMap(double speed_limit, int num_lanes, double lane_width, string waypoints_file);
 
 	/**
 	* Destructor
 	*/
-	virtual ~Map();
+	virtual ~RoadMap();
 
 	int num_lanes;
 
@@ -49,8 +49,10 @@ public:
 
 	// Transform from Frenet s,d coordinates to Cartesian x,y
 	vector<double> getXY(double s, double d);
+	//return the lane id from d value
+	int get_lane(double d);
 };
 
 
 
-#endif /* MAP_H_ */
+#endif /* ROADMAP_H_ */
