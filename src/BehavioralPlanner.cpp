@@ -21,8 +21,18 @@ BehavioralPlanner::~BehavioralPlanner() {}
 
 void BehavioralPlanner::generatePlan(vector<double> &next_x_vals, vector<double> &next_y_vals, double end_path_s)
 {
-	bool too_close = false;
 	int lane = map.get_lane(state.ego_d);
+	bool my_lane_clear = true;
+	bool right_clear = lane < 2;
+	bool right_faster = right_clear;
+	bool left_clear = lane > 0;
+	bool left_faster = left_clear;
+	float safe_speed = map.speed_limit - 0.5;
+	float safe_speed_right = safe_speed;
+	float safe_speed_left = safe_speed;
+
+//	cout<< "my lane: " << lane <<endl;
+
 	int prev_size = state.prev_x_vals.size();
 
 	if(prev_size > 0)
@@ -32,28 +42,73 @@ void BehavioralPlanner::generatePlan(vector<double> &next_x_vals, vector<double>
 
 	for (int i = 0; i < state.sensor_fusion.size(); ++i) {
 		float check_car_d = state.sensor_fusion[i][6];
+		double check_car_vx = state.sensor_fusion[i][3];
+		double check_car_vy = state.sensor_fusion[i][4];
+		double check_car_speed = sqrt(check_car_vx*check_car_vx+check_car_vy*check_car_vy);
+		double check_car_s = state.sensor_fusion[i][5];
+		//projection to where our leftover points end (assuming car maintains near 0 lat velocity)
+		check_car_s +=((double)prev_size*0.02*check_car_speed);
 		//car is in my lane
 		if(check_car_d < 2+4*lane+2 && check_car_d > 2+4*lane-2)
 		{
-			double check_car_vx = state.sensor_fusion[i][3];
-			double check_car_vy = state.sensor_fusion[i][4];
-			double check_car_speed = sqrt(check_car_vx*check_car_vx+check_car_vy*check_car_vy);
-			double check_car_s = state.sensor_fusion[i][5];
-
-			//projection to where our leftover points end (assuming car maintains near 0 lat velocity)
-			check_car_s +=((double)prev_size*0.02*check_car_speed);
-			if((check_car_s > state.ego_s) && (check_car_s-state.ego_s) < 70)
+			if((check_car_s > state.ego_s) && (check_car_s-state.ego_s) < 70 && check_car_speed < map.speed_limit - 5.0)
 			{
-				//TODO consider car for follow distance
-				too_close = true;
+				if(safe_speed > check_car_speed)
+					safe_speed = check_car_speed;
+				my_lane_clear = false;
 			}
 		}
+		if(right_clear){
+			if(check_car_d < 2+4*(lane+1)+2 && check_car_d > 2+4*(lane+1)-2){
+				//car is in lane to ego's right
+				if(std::abs(check_car_s-state.ego_s) < 10)
+				{
+					right_clear = false;
+				}
+				else if(check_car_s > state.ego_s && (check_car_s-state.ego_s) < 70){
+					if(safe_speed_right > check_car_speed)
+						safe_speed_right = check_car_speed;
+				}
+			}
+		}
+		if(left_clear){
+			if(check_car_d < 2+4*(lane-1)+2 && check_car_d > 2+4*(lane-1)-2){
+				//car is in lane to ego's left
+				if(std::abs(check_car_s-state.ego_s) < 10)
+				{
+					left_clear = false;
+				}
+				else if(check_car_s > state.ego_s && (check_car_s-state.ego_s) < 70){
+					if(safe_speed_left > check_car_speed)
+						safe_speed_left = check_car_speed;
+				}
+			}
+		}
+
+
+	}
+	right_faster = right_clear && (safe_speed < safe_speed_right - 10.0);
+	left_faster = left_clear && (safe_speed < safe_speed_left - 10.0);
+
+	if(right_faster){
+		lane = lane + 1;
+		if(ref_velocity < safe_speed_right){
+			ref_velocity += 0.224;
+		}
+	}
+	else if(left_faster){
+		lane = lane - 1;
+		if(ref_velocity < safe_speed_left){
+			ref_velocity += 0.224;
+		}
+	}
+	else if(!my_lane_clear && ref_velocity > safe_speed){
+		ref_velocity -= 0.224;
+	}
+	else if(ref_velocity < safe_speed){
+		ref_velocity += 0.224;
 	}
 
-	if(too_close)
-		ref_velocity -= 0.224;
-	else if(ref_velocity < map.speed_limit)
-		ref_velocity += 0.224;
 
 
 	vector<double> ptsx;
